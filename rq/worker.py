@@ -19,14 +19,16 @@ from .job import Job, Status
 from .utils import make_colorizer
 from .logutils import setup_loghandlers
 from .exceptions import NoQueueError, UnpickleError, DequeueTimeout
+from .scheduler import Scheduler
 from .timeouts import death_penalty_after
 from .version import VERSION
+
 
 green = make_colorizer('darkgreen')
 yellow = make_colorizer('darkyellow')
 blue = make_colorizer('darkblue')
 
-DEFAULT_WORKER_TTL = 420
+DEFAULT_WORKER_TTL = 120
 DEFAULT_RESULT_TTL = 500
 logger = logging.getLogger(__name__)
 
@@ -300,7 +302,13 @@ class Worker(object):
                     self.log.info('Stopping on request.')
                     break
                 self.state = 'idle'
+                
                 qnames = self.queue_names()
+                
+                # Move scheduled jobs into queues
+                scheduler = Scheduler(qnames[0], connection=self.connection)
+                scheduler.enqueue_jobs()
+
                 self.procline('Listening on %s' % ','.join(qnames))
                 self.log.info('')
                 self.log.info('*** Listening on %s...' % \
