@@ -12,8 +12,8 @@ from rq.registry import StartedJobRegistry
 from rq.suspension import suspend, resume
 
 from tests import RQTestCase, slow
-from tests.fixtures import (create_file, create_file_after_timeout,
-                            div_by_zero, say_hello, say_pid, do_nothing)
+from tests.fixtures import (create_file, create_file_after_timeout, do_nothing,
+                            div_by_zero, say_hello, say_pid, store_meta)
 from tests.helpers import strip_microseconds
 
 
@@ -294,6 +294,15 @@ class TestWorker(RQTestCase):
                           'Expected at least some work done.')
         self.assertEquals(job.result, os.getpid(),
                           'PID mismatch, fork() is not supposed to happen here')
+
+    def test_job_meta_modification_persisted_after_execution(self):
+        """Ensure modification to job.meta is preserved."""
+        q = Queue()
+        worker = SimpleWorker([q])
+        job = q.enqueue(store_meta, new_meta={'foo': 'bar'})
+        worker.work(burst=True)
+        job = Job.fetch(job.id)
+        self.assertEqual(job.meta, {'foo': 'bar'})
 
     def test_prepare_job_execution(self):
         """Prepare job execution does the necessary bookkeeping."""

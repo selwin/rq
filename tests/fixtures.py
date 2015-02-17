@@ -87,3 +87,9 @@ with Connection():
 
 def long_running_job():
     time.sleep(10)
+
+
+def store_meta(new_meta):
+    job = get_current_job()
+    job.meta.update(new_meta)
+    job.save()
